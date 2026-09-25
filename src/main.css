@@ -1,0 +1,80 @@
+@import "tailwindcss";
+@import "@openai/apps-sdk-ui/css";
+@source "../node_modules/@openai/apps-sdk-ui";
+
+:root {
+  --erp-accent: #2563eb;
+  --erp-accent-hover: #1d4ed8;
+  --erp-accent-soft: color-mix(in srgb, var(--erp-accent) 8%, transparent);
+  --erp-accent-ring: color-mix(in srgb, var(--erp-accent) 28%, transparent);
+  --erp-warm: #eff6ff;
+  --erp-warm-soft: color-mix(in srgb, var(--erp-warm) 48%, transparent);
+  --erp-ink: #2c2c2c;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+  background: transparent;
+}
+
+body {
+  padding: 0;
+}
+
+.erp-brand-primary {
+  --button-background-color: var(--erp-accent) !important;
+  --button-background-color-hover: var(--erp-accent-hover) !important;
+  --button-background-color-active: color-mix(
+    in srgb,
+    var(--erp-accent-hover) 82%,
+    #000
+  ) !important;
+  --button-text-color: #fff !important;
+  --button-ring-color: var(--erp-accent-ring) !important;
+}
+
+.erp-brand-primary:disabled {
+  opacity: 0.45;
+}
+
+.erp-selected-row {
+  background: var(--erp-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--erp-accent-ring);
+}
+
+.erp-divider-list > * + * {
+  border-top: 1px solid color-mix(in srgb, currentColor 9%, transparent);
+}
+
+.erp-brand-mark {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: var(--erp-accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 16%, transparent);
+}
+
+input[type="checkbox"] {
+  accent-color: var(--erp-accent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --erp-accent: #60a5fa;
+    --erp-accent-hover: #93c5fd;
+    --erp-accent-soft: color-mix(in srgb, var(--erp-accent) 13%, transparent);
+    --erp-accent-ring: color-mix(in srgb, var(--erp-accent) 38%, transparent);
+    --erp-warm-soft: color-mix(in srgb, #eff6ff 10%, transparent);
+  }
+}
