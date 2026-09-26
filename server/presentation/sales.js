@@ -4,7 +4,32 @@ const BRAND = {
   section: "銷售分析",
 };
 
-export function customerSalesRankingPresentation() {
+function normalizeCurrencyCode(code) {
+  const normalized = String(code ?? "").trim().toUpperCase();
+
+  if (normalized === "NTD") return "TWD";
+
+  return normalized || undefined;
+}
+
+function currencyFormat(data) {
+  return {
+    format: "currency",
+    currency: normalizeCurrencyCode(data.currency?.code),
+    locale: "en-US",
+    currencyDisplay: "symbol",
+    maximumFractionDigits: Number(data.currency?.price_float ?? 2),
+    minimumFractionDigits: Number(data.currency?.price_float ?? 0),
+  };
+}
+
+export function customerSalesRankingPresentation(data = {}) {
+  const money = currencyFormat(data);
+  const currencyName = data.currency?.name || "範例本位幣";
+  const currencyCode = data.currency?.code
+    ? ` ${data.currency.code}`
+    : "";
+
   return {
     version: 1,
     slot: "workspace",
@@ -23,17 +48,16 @@ export function customerSalesRankingPresentation() {
       {
         label: "淨銷售額",
         path: "summary.net_sales_amount",
-        format: "number",
-        maximumFractionDigits: 2,
+        ...money,
       },
       {
-        label: "銷售",
+        label: "銷售筆數",
         path: "summary.sales_count",
         format: "integer",
         suffix: " 筆",
       },
       {
-        label: "退貨",
+        label: "退貨筆數",
         path: "summary.return_count",
         format: "integer",
         suffix: " 筆",
@@ -54,8 +78,7 @@ export function customerSalesRankingPresentation() {
       },
       value: {
         field: "net_sales_amount",
-        format: "number",
-        maximumFractionDigits: 2,
+        ...money,
       },
       valueLabel: "淨銷售額",
       secondaryValue: {
@@ -66,6 +89,6 @@ export function customerSalesRankingPresentation() {
       secondaryLabel: "占比",
       progressField: "share_percent",
     },
-    footerText: "公開 Demo 僅使用 Mock Data",
+    footerText: `Mock Data 本位幣（${currencyName}${currencyCode}）`,
   };
 }

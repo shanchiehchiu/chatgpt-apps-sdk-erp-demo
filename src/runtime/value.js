@@ -21,21 +21,23 @@ export function getPath(source, path, fallback = null) {
 export function formatValue(value, descriptor = {}) {
   if (value === null || value === undefined || value === "") return "";
 
+  const locale = descriptor.locale ?? "zh-TW";
+
   if (descriptor.format === "integer") {
-    return new Intl.NumberFormat("zh-TW", {
+    return new Intl.NumberFormat(locale, {
       maximumFractionDigits: 0,
     }).format(Number(value));
   }
 
   if (descriptor.format === "number") {
-    return new Intl.NumberFormat("zh-TW", {
+    return new Intl.NumberFormat(locale, {
       maximumFractionDigits: descriptor.maximumFractionDigits ?? 2,
       minimumFractionDigits: descriptor.minimumFractionDigits ?? 0,
     }).format(Number(value));
   }
 
   if (descriptor.format === "percent") {
-    const formatted = new Intl.NumberFormat("zh-TW", {
+    const formatted = new Intl.NumberFormat(locale, {
       maximumFractionDigits: descriptor.maximumFractionDigits ?? 2,
       minimumFractionDigits: descriptor.minimumFractionDigits ?? 0,
     }).format(Number(value));
@@ -44,10 +46,12 @@ export function formatValue(value, descriptor = {}) {
   }
 
   if (descriptor.format === "currency" && descriptor.currency) {
-    return new Intl.NumberFormat("zh-TW", {
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: descriptor.currency,
+      currencyDisplay: descriptor.currencyDisplay ?? "symbol",
       maximumFractionDigits: descriptor.maximumFractionDigits ?? 2,
+      minimumFractionDigits: descriptor.minimumFractionDigits ?? 0,
     }).format(Number(value));
   }
 

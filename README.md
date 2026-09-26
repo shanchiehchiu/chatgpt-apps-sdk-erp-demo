@@ -112,7 +112,7 @@ _meta.ui.resourceUri
 Server 註冊：
 
 ```text
-ui://widget/erp-production-demo-v3.html
+ui://widget/erp-production-demo-v4.html
 ```
 
 Widget build 後會以 HTML resource 提供給支援 MCP Apps 的 Host。
@@ -127,7 +127,7 @@ Widget build 後會以 HTML resource 提供給支援 MCP Apps 的 Host。
 - `ranked-list`：排行、摘要指標、占比、inline / fullscreen
 - `tree-detail`：樹狀工單 / BOM / 用料 detail
 
-第二個 use case「客戶銷售排行」已經用 `ranked-list` 完成，而且沒有建立 `CustomerSalesRankingPage.jsx`。這就是資料 / Presentation / Renderer 分離真正要解決的問題。
+第二個 use case「客戶銷售排行」已經用 `ranked-list` 完成，而且沒有建立 `CustomerSalesRankingPage.jsx`。金額格式也由 domain data 的幣別資訊轉成 presentation schema，例如 NTD 會顯示為 NT$；Renderer 本身不寫死幣別。這就是資料 / Presentation / Renderer 分離真正要解決的問題。
 
 ### 6. Mock ERP
 
@@ -313,7 +313,7 @@ return {
 registerAppResource(
   server,
   "erp-production-demo-widget",
-  "ui://widget/erp-production-demo-v3.html",
+  "ui://widget/erp-production-demo-v4.html",
   ...
 );
 ```
@@ -323,7 +323,7 @@ registerAppResource(
 ```js
 _meta: {
   ui: {
-    resourceUri: "ui://widget/erp-production-demo-v3.html"
+    resourceUri: "ui://widget/erp-production-demo-v4.html"
   }
 }
 ```

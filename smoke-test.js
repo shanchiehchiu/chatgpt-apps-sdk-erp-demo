@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import http from "node:http";
 
 const port = 18788;
-const widgetUri = "ui://widget/erp-production-demo-v3.html";
+const widgetUri = "ui://widget/erp-production-demo-v4.html";
 
 const child = spawn(process.execPath, ["server.js"], {
   cwd: process.cwd(),
@@ -119,7 +119,7 @@ try {
     {
       protocolVersion: "2025-06-18",
       capabilities: {},
-      clientInfo: { name: "erp-demo-smoke-test", version: "0.3.0" },
+      clientInfo: { name: "erp-demo-smoke-test", version: "0.3.1" },
     },
     1,
   );
@@ -233,6 +233,18 @@ try {
   if (ranking.data.metric !== "net_sales_amount") {
     throw new Error("Customer sales ranking metric mismatch");
   }
+  if (ranking.data.currency?.code !== "NTD") {
+    throw new Error("Mock ranking currency missing");
+  }
+  if (ranking.presentation.summary?.[0]?.currency !== "TWD") {
+    throw new Error("Presentation did not normalize NTD to TWD");
+  }
+  if (ranking.presentation.summary?.[1]?.label !== "銷售筆數") {
+    throw new Error("Sales count label mismatch");
+  }
+  if (ranking.presentation.summary?.[2]?.label !== "退貨筆數") {
+    throw new Error("Return count label mismatch");
+  }
 
   const toolNames = new Set(tools.tools.map((tool) => tool.name));
 
@@ -249,7 +261,7 @@ try {
   }
 
   const resource = resources.resources.find((item) => item.uri === widgetUri);
-  if (!resource) throw new Error("v3 widget resource missing");
+  if (!resource) throw new Error("v4 widget resource missing");
 
   const html = widget.contents?.[0]?.text ?? "";
 

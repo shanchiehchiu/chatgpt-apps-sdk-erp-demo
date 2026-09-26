@@ -119,7 +119,12 @@ export async function getCustomerSalesRanking(input = {}) {
       end_date: endDate,
     },
     metric: "net_sales_amount",
-    currencyLabel: "範例本位幣",
+    currency: {
+      id: 1,
+      code: "NTD",
+      name: "範例台幣",
+      price_float: 0,
+    },
     total: records.length,
     totalCustomers: rows.length,
     summary: {

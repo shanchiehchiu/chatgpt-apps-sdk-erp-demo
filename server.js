@@ -24,7 +24,7 @@ import { makeUiView } from "./server/presentation/ui.js";
 
 const APP_DIR = dirname(fileURLToPath(import.meta.url));
 const widgetHtml = readFileSync(join(APP_DIR, "dist/index.html"), "utf8");
-const WIDGET_URI = "ui://widget/erp-production-demo-v3.html";
+const WIDGET_URI = "ui://widget/erp-production-demo-v4.html";
 
 let interactionCount = 0;
 let lastInteractionAt = null;
@@ -65,7 +65,7 @@ function uiToolMeta(visibility = ["model", "app"]) {
 function createAppServer() {
   const server = new McpServer({
     name: "chatgpt-apps-sdk-erp-demo",
-    version: "0.3.0",
+    version: "0.3.1",
   });
 
   registerAppResource(
@@ -212,7 +212,7 @@ function createAppServer() {
     },
     async (args) => {
       const data = await getCustomerSalesRanking(args);
-      const presentation = customerSalesRankingPresentation();
+      const presentation = customerSalesRankingPresentation(data);
 
       return {
         content: [],
