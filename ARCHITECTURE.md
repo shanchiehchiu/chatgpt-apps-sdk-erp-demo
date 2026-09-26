@@ -130,7 +130,7 @@ Presentation 只描述：
 src/runtime/
 ```
 
-目前有兩個 reusable primitives：
+目前有三個 reusable primitives：
 
 ### collection-workspace
 
@@ -145,6 +145,16 @@ src/runtime/
 - loading / error
 - safe area
 - detail slot
+
+### ranked-list
+
+負責：
+
+- 排名
+- summary metrics
+- 主值 / 次要值格式化
+- 占比 progress
+- inline / fullscreen
 
 ### tree-detail
 
@@ -185,34 +195,29 @@ src/mcp/useMcpBridge.js
 
 ## 新功能怎麼加？
 
-例如要做：
-
-> 客戶銷售排行
-
-不要建立：
+「客戶銷售排行」已經作為第二個 use case 完成，而且沒有建立：
 
 ```text
 CustomerSalesRankingPage.jsx
 ```
 
-應該做：
+實際流程：
 
 ```text
-1. get_customer_sales_ranking
+get_customer_sales_ranking
       ↓
-2. Model 回 canonical data
+Model 回 canonical data
       ↓
-3. sales-ranking presentation schema
+sales presentation schema
       ↓
-4. 既有 ranked-list / collection renderer
+通用 ranked-list renderer
 ```
 
-如果現有 renderer 已經能表達，就完全不用新增頁面。
+這證明新功能不必等於新頁面。之後如果既有 renderer 能表達，就只新增 Model / Tool / Presentation。
 
-只有在新的 workflow 真正需要新的 interaction pattern 時，才新增 primitive，例如：
+只有新的 workflow 真的需要不同 interaction pattern 時，才新增 primitive，例如：
 
 - `data-grid`
-- `ranked-list`
 - `form`
 - `detail`
 - `chart`

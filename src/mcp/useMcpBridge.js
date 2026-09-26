@@ -124,7 +124,7 @@ export function useMcpBridge() {
         const result = await request("ui/initialize", {
           appInfo: {
             name: "erp-production-demo-widget",
-            version: "0.2.0",
+            version: "0.3.0",
           },
           appCapabilities: {
             availableDisplayModes: ["inline", "fullscreen"],

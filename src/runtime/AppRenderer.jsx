@@ -1,4 +1,5 @@
 import { CollectionWorkspace } from "./CollectionWorkspace.jsx";
+import { RankedList } from "./RankedList.jsx";
 import { TreeDetail } from "./TreeDetail.jsx";
 
 function UnsupportedRenderer({ renderer }) {
@@ -44,6 +45,18 @@ export function AppRenderer({
         activeAction={activeAction}
         bridgeError={bridgeError}
         callTool={callTool}
+        displayMode={displayMode}
+        safeAreaInsets={safeAreaInsets}
+        requestFullscreen={requestFullscreen}
+      />
+    );
+  }
+
+  if (renderer === "ranked-list") {
+    return (
+      <RankedList
+        view={workspaceView}
+        bridgeError={bridgeError}
         displayMode={displayMode}
         safeAreaInsets={safeAreaInsets}
         requestFullscreen={requestFullscreen}

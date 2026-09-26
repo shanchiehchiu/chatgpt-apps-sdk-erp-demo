@@ -68,14 +68,15 @@ _meta.ui.resourceUri
 
 ### 1. MCP Server
 
-`server.js` 提供四個 Tool：
+`server.js` 提供五個 Tool：
 
 - `get_demo_status`
 - `run_round_trip`
 - `get_production_candidates`
+- `get_customer_sales_ranking`
 - `preview_production_orders`
 
-其中後兩個模擬 ERP 的「訂購轉生產工單」流程。
+其中包含兩個不同的 UI use case：「訂購轉生產工單」與「客戶銷售排行」。
 
 ### 2. Model / Domain Data
 
@@ -93,7 +94,7 @@ _meta.ui.resourceUri
 
 ### 3. Presentation / ViewModel
 
-`server/presentation/production.js` 只描述「這份資料要怎麼呈現」：
+`server/presentation/` 只描述「資料要怎麼呈現」；目前包含 production 與 sales 兩組 ViewModel：
 
 ```js
 {
@@ -111,7 +112,7 @@ _meta.ui.resourceUri
 Server 註冊：
 
 ```text
-ui://widget/erp-production-demo-v2.html
+ui://widget/erp-production-demo-v3.html
 ```
 
 Widget build 後會以 HTML resource 提供給支援 MCP Apps 的 Host。
@@ -123,9 +124,10 @@ Widget build 後會以 HTML resource 提供給支援 MCP Apps 的 Host。
 目前有：
 
 - `collection-workspace`：inline 摘要、搜尋、多選、批次 action、fullscreen 工作台
+- `ranked-list`：排行、摘要指標、占比、inline / fullscreen
 - `tree-detail`：樹狀工單 / BOM / 用料 detail
 
-因此新增一個類似「客戶銷售排行」的列表功能，原則上只要新增 Domain Query + Presentation Schema，不需要再做一套完整 React Page。
+第二個 use case「客戶銷售排行」已經用 `ranked-list` 完成，而且沒有建立 `CustomerSalesRankingPage.jsx`。這就是資料 / Presentation / Renderer 分離真正要解決的問題。
 
 ### 6. Mock ERP
 
@@ -195,14 +197,18 @@ Presentation → tree-detail schema
 │   ├── model/
 │   │   └── demo-erp.js        # Canonical Domain Data
 │   └── presentation/
-│       └── production.js      # Presentation / ViewModel Schema
+│       ├── production.js      # 生產流程 ViewModel
+│       ├── sales.js           # 銷售排行 ViewModel
+│       └── ui.js              # 共用 ViewModel helper
 ├── src/
 │   ├── main.jsx               # 很薄的 App entry
 │   ├── mcp/
 │   │   └── useMcpBridge.js    # MCP Apps bridge
 │   ├── runtime/
 │   │   ├── AppRenderer.jsx
+│   │   ├── BrandLockup.jsx
 │   │   ├── CollectionWorkspace.jsx
+│   │   ├── RankedList.jsx
 │   │   ├── TreeDetail.jsx
 │   │   └── value.js
 │   ├── components/
@@ -286,8 +292,18 @@ https://xxxxx.trycloudflare.com/mcp
 
 ```js
 return {
-  structuredContent: { view: "production_candidates" },
-  _meta: { erpCandidates: result }
+  structuredContent: {
+    view: "erp_ui",
+    domain: data.domain,
+    count: data.total
+  },
+  _meta: {
+    erpUi: {
+      slot: presentation.slot,
+      presentation,
+      data
+    }
+  }
 };
 ```
 
@@ -297,7 +313,7 @@ return {
 registerAppResource(
   server,
   "erp-production-demo-widget",
-  "ui://widget/erp-production-demo-v1.html",
+  "ui://widget/erp-production-demo-v3.html",
   ...
 );
 ```
@@ -307,7 +323,7 @@ registerAppResource(
 ```js
 _meta: {
   ui: {
-    resourceUri: "ui://widget/erp-production-demo-v1.html"
+    resourceUri: "ui://widget/erp-production-demo-v3.html"
   }
 }
 ```

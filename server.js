@@ -11,18 +11,20 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 import {
+  getCustomerSalesRanking,
   listProductionCandidates,
   previewProductionOrders,
 } from "./server/model/demo-erp.js";
 import {
-  makeUiView,
   productionCandidatesPresentation,
   productionPreviewPresentation,
 } from "./server/presentation/production.js";
+import { customerSalesRankingPresentation } from "./server/presentation/sales.js";
+import { makeUiView } from "./server/presentation/ui.js";
 
 const APP_DIR = dirname(fileURLToPath(import.meta.url));
 const widgetHtml = readFileSync(join(APP_DIR, "dist/index.html"), "utf8");
-const WIDGET_URI = "ui://widget/erp-production-demo-v2.html";
+const WIDGET_URI = "ui://widget/erp-production-demo-v3.html";
 
 let interactionCount = 0;
 let lastInteractionAt = null;
@@ -63,7 +65,7 @@ function uiToolMeta(visibility = ["model", "app"]) {
 function createAppServer() {
   const server = new McpServer({
     name: "chatgpt-apps-sdk-erp-demo",
-    version: "0.2.0",
+    version: "0.3.0",
   });
 
   registerAppResource(
@@ -169,6 +171,48 @@ function createAppServer() {
     async (args) => {
       const data = await listProductionCandidates(args);
       const presentation = productionCandidatesPresentation();
+
+      return {
+        content: [],
+        structuredContent: {
+          view: "erp_ui",
+          domain: data.domain,
+          count: data.total,
+        },
+        _meta: {
+          erpUi: makeUiView(presentation, data),
+        },
+      };
+    },
+  );
+
+  registerAppTool(
+    server,
+    "get_customer_sales_ranking",
+    {
+      title: "查詢客戶銷售排行",
+      description:
+        "從 Mock ERP 取得客戶淨銷售排行，並用通用 ranked-list renderer 呈現。若未提供日期，預設使用今年至今天。",
+      inputSchema: z.object({
+        start_date: z.string().optional(),
+        end_date: z.string().optional(),
+        limit: z.number().int().min(1).max(50).optional(),
+      }),
+      outputSchema: z.object({
+        view: z.literal("erp_ui"),
+        domain: z.literal("customer_sales_ranking"),
+        count: z.number(),
+      }),
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false,
+      },
+      _meta: uiToolMeta(),
+    },
+    async (args) => {
+      const data = await getCustomerSalesRanking(args);
+      const presentation = customerSalesRankingPresentation();
 
       return {
         content: [],

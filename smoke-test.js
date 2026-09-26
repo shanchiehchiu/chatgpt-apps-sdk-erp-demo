@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import http from "node:http";
 
 const port = 18788;
-const widgetUri = "ui://widget/erp-production-demo-v2.html";
+const widgetUri = "ui://widget/erp-production-demo-v3.html";
 
 const child = spawn(process.execPath, ["server.js"], {
   cwd: process.cwd(),
@@ -119,7 +119,7 @@ try {
     {
       protocolVersion: "2025-06-18",
       capabilities: {},
-      clientInfo: { name: "erp-demo-smoke-test", version: "0.2.0" },
+      clientInfo: { name: "erp-demo-smoke-test", version: "0.3.0" },
     },
     1,
   );
@@ -207,12 +207,40 @@ try {
     throw new Error("Preview canonical records missing");
   }
 
+  const rankingResult = await rpc(
+    "tools/call",
+    {
+      name: "get_customer_sales_ranking",
+      arguments: {
+        start_date: "2026-01-01",
+        end_date: "2026-09-26",
+        limit: 10,
+      },
+    },
+    7,
+  );
+
+  if (rankingResult.structuredContent?.domain !== "customer_sales_ranking") {
+    throw new Error("Customer sales ranking domain marker missing");
+  }
+
+  const ranking = assertUiView(rankingResult, "workspace", "ranked-list");
+
+  if (!Array.isArray(ranking.data.records) || ranking.data.records.length < 1) {
+    throw new Error("Mock customer sales ranking records missing");
+  }
+
+  if (ranking.data.metric !== "net_sales_amount") {
+    throw new Error("Customer sales ranking metric mismatch");
+  }
+
   const toolNames = new Set(tools.tools.map((tool) => tool.name));
 
   for (const expected of [
     "get_demo_status",
     "run_round_trip",
     "get_production_candidates",
+    "get_customer_sales_ranking",
     "preview_production_orders",
   ]) {
     if (!toolNames.has(expected)) {
@@ -221,13 +249,14 @@ try {
   }
 
   const resource = resources.resources.find((item) => item.uri === widgetUri);
-  if (!resource) throw new Error("v2 widget resource missing");
+  if (!resource) throw new Error("v3 widget resource missing");
 
   const html = widget.contents?.[0]?.text ?? "";
 
   for (const marker of [
     "ERP UI Runtime",
     "collection-workspace",
+    "ranked-list",
     "tree-detail",
     "ui/request-display-mode",
     "safeAreaInsets",
@@ -253,6 +282,8 @@ try {
   console.log(`Mock candidate records: ${workspace.data.total}`);
   console.log(`Detail renderer: ${detail.presentation.renderer}`);
   console.log(`Preview work orders: ${detail.data.total}`);
+  console.log(`Ranking renderer: ${ranking.presentation.renderer}`);
+  console.log(`Mock ranked customers: ${ranking.data.total}`);
 } finally {
   child.kill("SIGTERM");
   await sleep(100);

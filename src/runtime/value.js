@@ -18,6 +18,42 @@ export function getPath(source, path, fallback = null) {
   return current ?? fallback;
 }
 
+export function formatValue(value, descriptor = {}) {
+  if (value === null || value === undefined || value === "") return "";
+
+  if (descriptor.format === "integer") {
+    return new Intl.NumberFormat("zh-TW", {
+      maximumFractionDigits: 0,
+    }).format(Number(value));
+  }
+
+  if (descriptor.format === "number") {
+    return new Intl.NumberFormat("zh-TW", {
+      maximumFractionDigits: descriptor.maximumFractionDigits ?? 2,
+      minimumFractionDigits: descriptor.minimumFractionDigits ?? 0,
+    }).format(Number(value));
+  }
+
+  if (descriptor.format === "percent") {
+    const formatted = new Intl.NumberFormat("zh-TW", {
+      maximumFractionDigits: descriptor.maximumFractionDigits ?? 2,
+      minimumFractionDigits: descriptor.minimumFractionDigits ?? 0,
+    }).format(Number(value));
+
+    return `${formatted}%`;
+  }
+
+  if (descriptor.format === "currency" && descriptor.currency) {
+    return new Intl.NumberFormat("zh-TW", {
+      style: "currency",
+      currency: descriptor.currency,
+      maximumFractionDigits: descriptor.maximumFractionDigits ?? 2,
+    }).format(Number(value));
+  }
+
+  return String(value);
+}
+
 export function fieldValue(record, descriptor) {
   if (!descriptor) return "";
 
@@ -26,7 +62,7 @@ export function fieldValue(record, descriptor) {
     return descriptor.fallback ?? "";
   }
 
-  return `${descriptor.prefix ?? ""}${value}${descriptor.suffix ?? ""}`;
+  return `${descriptor.prefix ?? ""}${formatValue(value, descriptor)}${descriptor.suffix ?? ""}`;
 }
 
 export function lineValue(record, descriptor) {
