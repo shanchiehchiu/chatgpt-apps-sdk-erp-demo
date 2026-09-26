@@ -5,19 +5,24 @@ import { fileURLToPath } from "node:url";
 import {
   registerAppResource,
   registerAppTool,
-  RESOURCE_MIME_TYPE
+  RESOURCE_MIME_TYPE,
 } from "@modelcontextprotocol/ext-apps/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 import {
   listProductionCandidates,
-  previewProductionOrders
-} from "./mock-erp.js";
+  previewProductionOrders,
+} from "./server/model/demo-erp.js";
+import {
+  makeUiView,
+  productionCandidatesPresentation,
+  productionPreviewPresentation,
+} from "./server/presentation/production.js";
 
 const APP_DIR = dirname(fileURLToPath(import.meta.url));
 const widgetHtml = readFileSync(join(APP_DIR, "dist/index.html"), "utf8");
-const WIDGET_URI = "ui://widget/erp-production-demo-v1.html";
+const WIDGET_URI = "ui://widget/erp-production-demo-v2.html";
 
 let interactionCount = 0;
 let lastInteractionAt = null;
@@ -30,7 +35,7 @@ const projectSchema = z.object({
   added: z.number(),
   deleted: z.number(),
   interactionCount: z.number(),
-  lastInteractionAt: z.string().nullable()
+  lastInteractionAt: z.string().nullable(),
 });
 
 function projectSnapshot() {
@@ -42,14 +47,23 @@ function projectSnapshot() {
     added: 0,
     deleted: 0,
     interactionCount,
-    lastInteractionAt
+    lastInteractionAt,
+  };
+}
+
+function uiToolMeta(visibility = ["model", "app"]) {
+  return {
+    ui: {
+      resourceUri: WIDGET_URI,
+      visibility,
+    },
   };
 }
 
 function createAppServer() {
   const server = new McpServer({
     name: "chatgpt-apps-sdk-erp-demo",
-    version: "0.1.0"
+    version: "0.2.0",
   });
 
   registerAppResource(
@@ -66,14 +80,14 @@ function createAppServer() {
           _meta: {
             ui: { prefersBorder: false },
             "openai/ui": {
-              availableDisplayModes: ["inline", "fullscreen"]
+              availableDisplayModes: ["inline", "fullscreen"],
             },
             "openai/widgetDescription":
-              "This widget is the complete demo ERP result UI. Inline mode is a compact summary; fullscreen mode is the production workbench. Avoid duplicating the same rows in assistant prose."
-          }
-        }
-      ]
-    })
+              "Generic ERP UI runtime demo. Domain data and presentation schema are separated, then rendered by reusable enterprise UI primitives. Avoid duplicating the same rows in assistant prose.",
+          },
+        },
+      ],
+    }),
   );
 
   registerAppTool(
@@ -87,14 +101,14 @@ function createAppServer() {
       annotations: {
         readOnlyHint: true,
         openWorldHint: false,
-        destructiveHint: false
+        destructiveHint: false,
       },
-      _meta: { ui: { resourceUri: WIDGET_URI } }
+      _meta: { ui: { resourceUri: WIDGET_URI } },
     },
     async () => ({
       content: [{ type: "text", text: "Demo status loaded." }],
-      structuredContent: { project: projectSnapshot() }
-    })
+      structuredContent: { project: projectSnapshot() },
+    }),
   );
 
   registerAppTool(
@@ -108,9 +122,9 @@ function createAppServer() {
       annotations: {
         readOnlyHint: false,
         openWorldHint: false,
-        destructiveHint: false
+        destructiveHint: false,
       },
-      _meta: { ui: { resourceUri: WIDGET_URI } }
+      _meta: { ui: { resourceUri: WIDGET_URI } },
     },
     async () => {
       interactionCount += 1;
@@ -120,12 +134,12 @@ function createAppServer() {
         content: [
           {
             type: "text",
-            text: `Round trip #${interactionCount} completed.`
-          }
+            text: `Round trip #${interactionCount} completed.`,
+          },
         ],
-        structuredContent: { project: projectSnapshot() }
+        structuredContent: { project: projectSnapshot() },
       };
-    }
+    },
   );
 
   registerAppTool(
@@ -134,38 +148,40 @@ function createAppServer() {
     {
       title: "查詢待轉生產工單明細",
       description:
-        "從範例 ERP 資料取得尚未轉生產工單的訂購明細，提供使用者在 UI 中勾選。",
+        "從範例 ERP Model 取得待轉生產工單的 canonical domain data，再套用獨立 presentation schema，由通用 collection-workspace renderer 顯示。",
       inputSchema: z.object({
         delivery_date_start: z.string().optional(),
         delivery_date_end: z.string().optional(),
-        limit: z.number().int().min(1).max(100).optional()
+        limit: z.number().int().min(1).max(100).optional(),
       }),
-      outputSchema: z.object({ view: z.literal("production_candidates") }),
+      outputSchema: z.object({
+        view: z.literal("erp_ui"),
+        domain: z.literal("production_candidates"),
+        count: z.number(),
+      }),
       annotations: {
         readOnlyHint: true,
         openWorldHint: false,
-        destructiveHint: false
+        destructiveHint: false,
       },
-      _meta: {
-        ui: {
-          resourceUri: WIDGET_URI,
-          visibility: ["model", "app"]
-        }
-      }
+      _meta: uiToolMeta(),
     },
     async (args) => {
-      const result = listProductionCandidates({
-        delivery_date_start: args.delivery_date_start,
-        delivery_date_end: args.delivery_date_end,
-        limit: args.limit ?? 30
-      });
+      const data = await listProductionCandidates(args);
+      const presentation = productionCandidatesPresentation();
 
       return {
         content: [],
-        structuredContent: { view: "production_candidates" },
-        _meta: { erpCandidates: result }
+        structuredContent: {
+          view: "erp_ui",
+          domain: data.domain,
+          count: data.total,
+        },
+        _meta: {
+          erpUi: makeUiView(presentation, data),
+        },
       };
-    }
+    },
   );
 
   registerAppTool(
@@ -174,32 +190,38 @@ function createAppServer() {
     {
       title: "預覽生產工單",
       description:
-        "依照使用者勾選的訂購明細，使用 mock BOM 展開成品、半成品與用料。此工具只做預覽，不會寫入任何資料。",
+        "依照勾選的範例訂購明細產生 canonical preview data，再以獨立 tree-detail presentation schema 顯示 BOM、半成品與用料。此工具不會寫入資料。",
       inputSchema: z.object({
-        ids: z.array(z.number().int()).min(1).max(30)
+        ids: z.array(z.number().int()).min(1).max(30),
       }),
-      outputSchema: z.object({ view: z.literal("production_preview") }),
+      outputSchema: z.object({
+        view: z.literal("erp_ui"),
+        domain: z.literal("production_order_preview"),
+        count: z.number(),
+      }),
       annotations: {
         readOnlyHint: true,
         openWorldHint: false,
-        destructiveHint: false
+        destructiveHint: false,
       },
-      _meta: {
-        ui: {
-          resourceUri: WIDGET_URI,
-          visibility: ["app"]
-        }
-      }
+      _meta: uiToolMeta(["app"]),
     },
     async ({ ids }) => {
-      const result = previewProductionOrders(ids);
+      const data = await previewProductionOrders(ids);
+      const presentation = productionPreviewPresentation();
 
       return {
         content: [],
-        structuredContent: { view: "production_preview" },
-        _meta: { erpPreview: result }
+        structuredContent: {
+          view: "erp_ui",
+          domain: data.domain,
+          count: data.total,
+        },
+        _meta: {
+          erpUi: makeUiView(presentation, data),
+        },
       };
-    }
+    },
   );
 
   return server;
@@ -221,7 +243,7 @@ const httpServer = createServer(async (req, res) => {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "POST, GET, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "content-type, mcp-session-id",
-      "Access-Control-Expose-Headers": "Mcp-Session-Id"
+      "Access-Control-Expose-Headers": "Mcp-Session-Id",
     });
     res.end();
     return;
@@ -229,7 +251,7 @@ const httpServer = createServer(async (req, res) => {
 
   if (req.method === "GET" && url.pathname === "/") {
     res.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
-    res.end("ChatGPT Apps SDK + MCP ERP demo");
+    res.end("ChatGPT Apps SDK + MCP generic ERP UI runtime demo");
     return;
   }
 
@@ -242,7 +264,7 @@ const httpServer = createServer(async (req, res) => {
     const server = createAppServer();
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
-      enableJsonResponse: true
+      enableJsonResponse: true,
     });
 
     res.on("close", () => {

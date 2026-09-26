@@ -77,31 +77,57 @@ _meta.ui.resourceUri
 
 其中後兩個模擬 ERP 的「訂購轉生產工單」流程。
 
-### 2. MCP UI Resource
+### 2. Model / Domain Data
+
+`server/model/demo-erp.js` 把 Mock ERP 整理成穩定的 canonical data：
+
+```js
+{
+  domain: "production_candidates",
+  total: 5,
+  records: [...]
+}
+```
+
+這一層只知道 ERP 資料，不知道畫面長什麼樣。
+
+### 3. Presentation / ViewModel
+
+`server/presentation/production.js` 只描述「這份資料要怎麼呈現」：
+
+```js
+{
+  renderer: "collection-workspace",
+  search: {...},
+  collection: {...},
+  selection: {...}
+}
+```
+
+資料與表示分開，所以未來換 Renderer 或接 Host-native Gen UI，不需要重寫 ERP capability。
+
+### 4. MCP UI Resource
 
 Server 註冊：
 
 ```text
-ui://widget/erp-production-demo-v1.html
+ui://widget/erp-production-demo-v2.html
 ```
 
 Widget build 後會以 HTML resource 提供給支援 MCP Apps 的 Host。
 
-### 3. React Widget
+### 5. Generic UI Runtime
 
-`src/main.jsx` 支援：
+`src/runtime/` 不是某一個 ERP 功能的完整頁面，而是一組可重複使用的 Renderer。
 
-- inline 摘要卡片
-- fullscreen 工作台
-- 搜尋
-- 多選
-- 批次預覽
-- BOM / 半成品結構
-- loading / error state
-- safe area
-- Widget 內再次呼叫 MCP Tool
+目前有：
 
-### 4. Mock ERP
+- `collection-workspace`：inline 摘要、搜尋、多選、批次 action、fullscreen 工作台
+- `tree-detail`：樹狀工單 / BOM / 用料 detail
+
+因此新增一個類似「客戶銷售排行」的列表功能，原則上只要新增 Domain Query + Presentation Schema，不需要再做一套完整 React Page。
+
+### 6. Mock ERP
 
 `mock-erp.js` 完全是假的範例資料：
 
@@ -124,33 +150,33 @@ Widget build 後會以 HTML resource 提供給支援 MCP Apps 的 Host。
   ↓
 ChatGPT
   ↓
-get_production_candidates
+MCP Tool / Controller
   ↓
-server.js
+Model → Canonical Domain Data
+  +
+Presentation Adapter → UI Schema
   ↓
-mock-erp.js
+_meta.erpUi
   ↓
-Tool Result
+Generic AppRenderer
   ↓
-Widget 顯示待處理訂購明細
+collection-workspace
 ```
 
 使用者在 Widget 裡勾選後：
 
 ```text
-React Widget
-  ↓
-tools/call
-  ↓
+Generic Renderer
+  ↓ tools/call
 preview_production_orders
   ↓
-mock-erp.js
+Model → Preview Domain Data
+  +
+Presentation → tree-detail schema
   ↓
-展開 BOM / 半成品 / 用料
+同一個 UI Runtime
   ↓
-Tool Result
-  ↓
-Widget 更新右側預覽
+右側展開 BOM / 半成品 / 用料
 ```
 
 這就是 Apps SDK / MCP Apps 比純文字 Tool 多出來的價值：
@@ -163,17 +189,31 @@ Widget 更新右側預覽
 
 ```text
 .
-├── server.js          # MCP Server / Tools / UI Resource
-├── mock-erp.js        # 完全假的 ERP 範例資料
-├── smoke-test.js      # MCP + Resource + Widget 的整合 smoke test
-├── dev-tunnel.js      # 開發用 Cloudflare Quick Tunnel
+├── server.js                  # MCP Controller / Tools / UI Resource
+├── mock-erp.js                # 完全假的 ERP 原始資料
+├── server/
+│   ├── model/
+│   │   └── demo-erp.js        # Canonical Domain Data
+│   └── presentation/
+│       └── production.js      # Presentation / ViewModel Schema
 ├── src/
-│   ├── main.jsx       # React Widget + MCP Apps bridge
+│   ├── main.jsx               # 很薄的 App entry
+│   ├── mcp/
+│   │   └── useMcpBridge.js    # MCP Apps bridge
+│   ├── runtime/
+│   │   ├── AppRenderer.jsx
+│   │   ├── CollectionWorkspace.jsx
+│   │   ├── TreeDetail.jsx
+│   │   └── value.js
+│   ├── components/
+│   │   └── ProjectStatusCard.jsx
 │   └── main.css
-├── vite.config.js
-├── index.html
+├── smoke-test.js
+├── dev-tunnel.js
 └── package.json
 ```
+
+更完整的分層說明請看 [ARCHITECTURE.md](./ARCHITECTURE.md)。
 
 ---
 

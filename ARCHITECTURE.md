@@ -1,0 +1,268 @@
+# 架構說明：MCP + Apps SDK 的 MVC / ViewModel 做法
+
+這個 Demo 刻意不採用「一個 ERP 功能寫一套 React Page」的方式。
+
+核心目標是：
+
+> ERP 能力與資料保持穩定，UI 只是可替換的表示層。
+
+整體可以直接用熟悉的 MVC / ViewModel 思路理解：
+
+```text
+ERP / Domain Service
+        ↓
+Model Adapter
+        ↓
+MCP Tool / Controller
+        ↓
+Canonical Domain Data
+        +
+Presentation / ViewModel Schema
+        ↓
+Generic UI Runtime
+        ↓
+React Renderer
+```
+
+## 1. Model / Domain
+
+檔案：
+
+```text
+server/model/demo-erp.js
+```
+
+它的責任只有：
+
+- 取得 ERP / API / DB 資料
+- 整理成穩定的 domain data
+- 不知道畫面要用表格、列表還是圖表
+
+例如：
+
+```js
+{
+  domain: "production_candidates",
+  source: "mock-erp",
+  total: 5,
+  records: [...]
+}
+```
+
+未來接真實 ERP 時，只需要把 Mock Adapter 換成 REST API、Laravel Service 或其他 backend adapter。
+
+## 2. Controller / MCP Tool
+
+檔案：
+
+```text
+server.js
+```
+
+MCP Tool 的角色很像 Controller：
+
+1. 接收 tool arguments
+2. 呼叫 Model
+3. 選擇適合的 Presentation Adapter
+4. 回 MCP result
+
+Tool 本身不寫 JSX，也不決定 CSS。
+
+目前 UI-first Tool 的結果大致是：
+
+```js
+structuredContent: {
+  view: "erp_ui",
+  domain: "production_candidates",
+  count: 5
+},
+_meta: {
+  erpUi: {
+    slot: "workspace",
+    presentation: {...},
+    data: {...}
+  }
+}
+```
+
+## 3. Presentation / ViewModel
+
+檔案：
+
+```text
+server/presentation/production.js
+```
+
+Presentation 只描述：
+
+- 用哪個 renderer
+- 哪些欄位是 title / subtitle / meta
+- 哪些欄位可搜尋
+- 是否支援 multiple selection
+- batch action 要呼叫哪個 MCP Tool
+- detail 要用哪個 renderer
+
+例如：
+
+```js
+{
+  renderer: "collection-workspace",
+  search: {
+    fields: ["order_no", "customer_name", "product_name"]
+  },
+  selection: {
+    mode: "multiple",
+    action: {
+      tool: "preview_production_orders",
+      input: { ids: "$selection" }
+    }
+  }
+}
+```
+
+這一層就是 ViewModel / Presentation Adapter。
+
+## 4. View / Generic UI Runtime
+
+檔案：
+
+```text
+src/runtime/
+```
+
+目前有兩個 reusable primitives：
+
+### collection-workspace
+
+負責：
+
+- inline 摘要
+- fullscreen 工作台
+- 搜尋
+- 多選
+- 全選目前結果
+- contextual batch action
+- loading / error
+- safe area
+- detail slot
+
+### tree-detail
+
+負責：
+
+- parent / child tree
+- summary
+- status
+- 展開 nested materials
+- detail footer action
+
+`AppRenderer.jsx` 會依照：
+
+```js
+presentation.renderer
+```
+
+決定要使用哪一個通用 Renderer。
+
+## 5. MCP Apps Bridge
+
+檔案：
+
+```text
+src/mcp/useMcpBridge.js
+```
+
+它只負責 Host communication：
+
+- `ui/initialize`
+- tool result notification
+- `tools/call`
+- inline / fullscreen
+- safe area
+- bridge error
+
+它不知道「訂購單」、「客戶」或「BOM」是什麼。
+
+## 新功能怎麼加？
+
+例如要做：
+
+> 客戶銷售排行
+
+不要建立：
+
+```text
+CustomerSalesRankingPage.jsx
+```
+
+應該做：
+
+```text
+1. get_customer_sales_ranking
+      ↓
+2. Model 回 canonical data
+      ↓
+3. sales-ranking presentation schema
+      ↓
+4. 既有 ranked-list / collection renderer
+```
+
+如果現有 renderer 已經能表達，就完全不用新增頁面。
+
+只有在新的 workflow 真正需要新的 interaction pattern 時，才新增 primitive，例如：
+
+- `data-grid`
+- `ranked-list`
+- `form`
+- `detail`
+- `chart`
+- `master-detail`
+
+## 為什麼這樣設計？
+
+因為目標不是做一個 Demo 畫面，而是支援很多 ERP capabilities：
+
+```text
+100 個 MCP capabilities
+        ↓
+少量 Presentation Schema
+        ↓
+6～10 個穩定的 enterprise UI primitives
+```
+
+這樣可以避免：
+
+```text
+功能 A → APage.jsx
+功能 B → BPage.jsx
+功能 C → CPage.jsx
+...
+```
+
+## 未來接 Gen UI
+
+目前 Renderer 是我們自己的 React Runtime：
+
+```text
+Canonical Data
++
+Presentation Schema
+        ↓
+AppRenderer
+```
+
+如果未來 ChatGPT / MCP Host 提供成熟的 declarative Gen UI：
+
+```text
+Canonical Data
++
+Presentation Intent / Schema
+        ↓
+Host-native Gen UI
+```
+
+Model、ERP business logic 與 MCP capability 不需要重寫。
+
+也就是：
+
+> 現在先把資料與表示拆乾淨，未來換 UI Runtime，而不是換整個後端。
