@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import http from "node:http";
 
 const port = 18788;
-const widgetUri = "ui://widget/erp-production-demo-v5.html";
+const widgetUri = "ui://widget/erp-production-demo-v6.html";
 
 const child = spawn(process.execPath, ["server.js"], {
   cwd: process.cwd(),
@@ -119,7 +119,7 @@ try {
     {
       protocolVersion: "2025-06-18",
       capabilities: {},
-      clientInfo: { name: "erp-demo-smoke-test", version: "0.4.0" },
+      clientInfo: { name: "erp-demo-smoke-test", version: "0.5.0" },
     },
     1,
   );
@@ -281,6 +281,84 @@ try {
     throw new Error("Data Grid pagination schema missing");
   }
 
+  const formResult = await rpc(
+    "tools/call",
+    {
+      name: "get_form_demo",
+      arguments: {},
+    },
+    9,
+  );
+
+  if (formResult.structuredContent?.domain !== "form_demo") {
+    throw new Error("Form demo domain marker missing");
+  }
+
+  const formView = assertUiView(formResult, "workspace", "form");
+  const formFields = formView.presentation.form?.fields ?? [];
+
+  if (formFields.length < 10) {
+    throw new Error("Form field schema missing");
+  }
+
+  if ((formView.presentation.form?.sections ?? []).length < 3) {
+    throw new Error("Form section schema missing");
+  }
+
+  if (formView.presentation.submit?.tool !== "submit_form_demo") {
+    throw new Error("Form submit action schema missing");
+  }
+
+  const invalidFormResult = await rpc(
+    "tools/call",
+    {
+      name: "submit_form_demo",
+      arguments: {
+        values: {
+          ...formView.data.values,
+          delivery_method: "delivery",
+          delivery_address: "",
+          urgent: true,
+          urgent_reason: "",
+        },
+      },
+    },
+    10,
+  );
+
+  const invalidForm = assertUiView(invalidFormResult, "workspace", "form");
+  if (invalidForm.data.result?.status !== "error") {
+    throw new Error("Form backend validation error state missing");
+  }
+  if (!invalidForm.data.result?.errors?.delivery_address) {
+    throw new Error("Conditional delivery address validation missing");
+  }
+  if (!invalidForm.data.result?.errors?.urgent_reason) {
+    throw new Error("Conditional urgent reason validation missing");
+  }
+
+  const validFormResult = await rpc(
+    "tools/call",
+    {
+      name: "submit_form_demo",
+      arguments: {
+        values: {
+          ...formView.data.values,
+          delivery_method: "delivery",
+          delivery_address: "範例市測試路 100 號",
+          urgent: true,
+          urgent_reason: "Demo 測試",
+        },
+      },
+    },
+    11,
+  );
+
+  const validForm = assertUiView(validFormResult, "workspace", "form");
+  if (validForm.data.result?.status !== "success") {
+    throw new Error("Form backend validation success state missing");
+  }
+
   const toolNames = new Set(tools.tools.map((tool) => tool.name));
 
   for (const expected of [
@@ -289,6 +367,8 @@ try {
     "get_production_candidates",
     "get_customer_sales_ranking",
     "get_data_grid_demo",
+    "get_form_demo",
+    "submit_form_demo",
     "preview_production_orders",
   ]) {
     if (!toolNames.has(expected)) {
@@ -297,7 +377,7 @@ try {
   }
 
   const resource = resources.resources.find((item) => item.uri === widgetUri);
-  if (!resource) throw new Error("v5 widget resource missing");
+  if (!resource) throw new Error("v6 widget resource missing");
 
   const html = widget.contents?.[0]?.text ?? "";
 
@@ -305,6 +385,7 @@ try {
     "ERP UI Runtime",
     "collection-workspace",
     "data-grid",
+    "erp-form-control",
     "ranked-list",
     "tree-detail",
     "ui/request-display-mode",
@@ -335,6 +416,9 @@ try {
   console.log(`Mock ranked customers: ${ranking.data.total}`);
   console.log(`Grid renderer: ${dataGrid.presentation.renderer}`);
   console.log(`Grid records: ${dataGrid.data.total}`);
+  console.log(`Form renderer: ${formView.presentation.renderer}`);
+  console.log(`Form fields: ${formFields.length}`);
+  console.log(`Form submit: ${validForm.data.result.status}`);
 } finally {
   child.kill("SIGTERM");
   await sleep(100);

@@ -131,6 +131,110 @@ body {
   cursor: pointer;
 }
 
+.erp-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px 20px;
+}
+
+.erp-form-span-2 {
+  grid-column: 1 / -1;
+}
+
+.erp-form-section + .erp-form-section {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid color-mix(in srgb, currentColor 9%, transparent);
+}
+
+.erp-form-control {
+  min-height: 38px;
+  border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+  border-radius: 9px;
+  background: transparent;
+  padding: 0 10px;
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+
+.erp-form-control:focus {
+  border-color: var(--erp-accent);
+  box-shadow: 0 0 0 2px var(--erp-accent-soft);
+}
+
+.erp-form-control:disabled,
+.erp-form-control[readonly] {
+  background: color-mix(in srgb, currentColor 4%, transparent);
+  color: var(--color-text-secondary, currentColor);
+}
+
+.erp-form-control-error {
+  border-color: var(--color-text-danger, #b42318);
+}
+
+.erp-form-affix {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: stretch;
+}
+
+.erp-form-affix > .erp-form-control {
+  border-radius: 0 9px 9px 0;
+}
+
+.erp-form-affix-label {
+  display: inline-flex;
+  min-width: 46px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+  border-right: 0;
+  border-radius: 9px 0 0 9px;
+  background: color-mix(in srgb, currentColor 4%, transparent);
+  padding: 0 9px;
+  font-size: 12px;
+  color: var(--color-text-secondary, currentColor);
+}
+
+.erp-form-checkbox-row {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 9px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.erp-form-checkbox-row input {
+  width: 18px;
+  height: 18px;
+}
+
+.erp-form-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.erp-form-result-success {
+  background: color-mix(in srgb, #15803d 9%, transparent);
+}
+
+.erp-form-result-error {
+  background: color-mix(in srgb, #b42318 9%, transparent);
+}
+
+@media (min-width: 760px) {
+  .erp-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .erp-brand-mark {
   display: inline-flex;
   width: 34px;

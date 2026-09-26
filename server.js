@@ -16,7 +16,12 @@ import {
   previewProductionOrders,
 } from "./server/model/demo-erp.js";
 import { getDataGridDemoData } from "./server/demo/grid-fixture.js";
+import {
+  getFormDemoData,
+  submitFormDemo,
+} from "./server/demo/form-fixture.js";
 import { dataGridDemoPresentation } from "./server/presentation/grid.js";
+import { formDemoPresentation } from "./server/presentation/form.js";
 import {
   productionCandidatesPresentation,
   productionPreviewPresentation,
@@ -26,7 +31,7 @@ import { makeUiView } from "./server/presentation/ui.js";
 
 const APP_DIR = dirname(fileURLToPath(import.meta.url));
 const widgetHtml = readFileSync(join(APP_DIR, "dist/index.html"), "utf8");
-const WIDGET_URI = "ui://widget/erp-production-demo-v5.html";
+const WIDGET_URI = "ui://widget/erp-production-demo-v6.html";
 
 let interactionCount = 0;
 let lastInteractionAt = null;
@@ -67,7 +72,7 @@ function uiToolMeta(visibility = ["model", "app"]) {
 function createAppServer() {
   const server = new McpServer({
     name: "chatgpt-apps-sdk-erp-demo",
-    version: "0.4.0",
+    version: "0.5.0",
   });
 
   registerAppResource(
@@ -255,6 +260,87 @@ function createAppServer() {
     async (args) => {
       const data = getDataGridDemoData(args);
       const presentation = dataGridDemoPresentation(data);
+
+      return {
+        content: [],
+        structuredContent: {
+          view: "erp_ui",
+          domain: data.domain,
+          count: data.total,
+        },
+        _meta: {
+          erpUi: makeUiView(presentation, data),
+        },
+      };
+    },
+  );
+
+  registerAppTool(
+    server,
+    "get_form_demo",
+    {
+      title: "開啟 Form Primitive",
+      description:
+        "載入不綁定業務頁面的 Mock Form，驗證欄位 schema、預設值、readonly / disabled、條件顯示、條件必填、前端驗證與 MCP submit action。",
+      inputSchema: z.object({}),
+      outputSchema: z.object({
+        view: z.literal("erp_ui"),
+        domain: z.literal("form_demo"),
+        count: z.number(),
+      }),
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false,
+      },
+      _meta: uiToolMeta(),
+    },
+    async () => {
+      const data = getFormDemoData();
+      const presentation = formDemoPresentation();
+
+      return {
+        content: [],
+        structuredContent: {
+          view: "erp_ui",
+          domain: data.domain,
+          count: data.total,
+        },
+        _meta: {
+          erpUi: makeUiView(presentation, data),
+        },
+      };
+    },
+  );
+
+  registerAppTool(
+    server,
+    "submit_form_demo",
+    {
+      title: "驗證 Form Primitive",
+      description:
+        "接收 Form Primitive 值並執行 Mock 後端驗證。Demo 不寫入資料，只回傳驗證結果與欄位錯誤。",
+      inputSchema: z.object({
+        values: z.record(
+          z.string(),
+          z.union([z.string(), z.number(), z.boolean(), z.null()]),
+        ),
+      }),
+      outputSchema: z.object({
+        view: z.literal("erp_ui"),
+        domain: z.literal("form_demo"),
+        count: z.number(),
+      }),
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false,
+      },
+      _meta: uiToolMeta(["app"]),
+    },
+    async ({ values }) => {
+      const data = submitFormDemo(values);
+      const presentation = formDemoPresentation();
 
       return {
         content: [],

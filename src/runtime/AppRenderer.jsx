@@ -1,5 +1,6 @@
 import { CollectionWorkspace } from "./CollectionWorkspace.jsx";
 import { DataGrid } from "./DataGrid.jsx";
+import { FormRenderer } from "./FormRenderer.jsx";
 import { RankedList } from "./RankedList.jsx";
 import { TreeDetail } from "./TreeDetail.jsx";
 
@@ -68,6 +69,20 @@ export function AppRenderer({
   if (renderer === "data-grid") {
     return (
       <DataGrid
+        view={workspaceView}
+        activeAction={activeAction}
+        bridgeError={bridgeError}
+        callTool={callTool}
+        displayMode={displayMode}
+        safeAreaInsets={safeAreaInsets}
+        requestFullscreen={requestFullscreen}
+      />
+    );
+  }
+
+  if (renderer === "form") {
+    return (
+      <FormRenderer
         view={workspaceView}
         activeAction={activeAction}
         bridgeError={bridgeError}

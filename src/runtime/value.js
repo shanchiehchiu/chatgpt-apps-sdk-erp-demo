@@ -110,6 +110,10 @@ export function resolveArgs(template, context = {}) {
     return context.selection ?? [];
   }
 
+  if (template === "$form") {
+    return context.form ?? {};
+  }
+
   return template;
 }
 

@@ -130,7 +130,7 @@ Presentation 只描述：
 src/runtime/
 ```
 
-目前有四個 reusable primitives：
+目前有五個 reusable primitives：
 
 ### collection-workspace
 
@@ -161,6 +161,23 @@ src/runtime/
 - inline / fullscreen
 
 進階篩選採 progressive disclosure；batch toolbar 只有在選取資料後才出現。
+
+### form
+
+負責：
+
+- section / field schema
+- 預設值
+- readonly / disabled
+- text / number / date / select / textarea / checkbox
+- 條件顯示 / 條件必填
+- 前端驗證與欄位錯誤
+- dirty state / reset
+- MCP submit action
+- 後端驗證錯誤回填
+- inline / fullscreen
+
+Form 以減少輸入為優先，label 永久可見，不使用 placeholder 取代 label。
 
 ### ranked-list
 
@@ -231,11 +248,10 @@ sales presentation schema
 
 這證明新功能不必等於新頁面。之後如果既有 renderer 能表達，就只新增 Model / Tool / Presentation。
 
-`data-grid` 已經用獨立 Primitive Lab 完成，不綁任何 ERP 業務頁面。之後常見查詢型功能只要提供 records + columns / filters / actions schema 即可。
+`data-grid` 與 `form` 都已用獨立 Primitive Lab 完成，不綁任何 ERP 業務頁面。查詢型功能提供 records + columns / filters / actions schema；表單型功能提供 values + sections / fields / submit schema。
 
 只有新的 workflow 真的需要不同 interaction pattern 時，才新增 primitive，例如：
 
-- `form`
 - `detail`
 - `chart`
 - `master-detail`
