@@ -130,7 +130,7 @@ Presentation 只描述：
 src/runtime/
 ```
 
-目前有三個 reusable primitives：
+目前有四個 reusable primitives：
 
 ### collection-workspace
 
@@ -145,6 +145,22 @@ src/runtime/
 - loading / error
 - safe area
 - detail slot
+
+### data-grid
+
+負責：
+
+- 欄位 schema
+- 搜尋
+- select / 日期 / 數值篩選
+- 排序
+- client pagination
+- checkbox 多選
+- contextual batch action
+- badge / number / currency / date formatting
+- inline / fullscreen
+
+進階篩選採 progressive disclosure；batch toolbar 只有在選取資料後才出現。
 
 ### ranked-list
 
@@ -215,9 +231,10 @@ sales presentation schema
 
 這證明新功能不必等於新頁面。之後如果既有 renderer 能表達，就只新增 Model / Tool / Presentation。
 
+`data-grid` 已經用獨立 Primitive Lab 完成，不綁任何 ERP 業務頁面。之後常見查詢型功能只要提供 records + columns / filters / actions schema 即可。
+
 只有新的 workflow 真的需要不同 interaction pattern 時，才新增 primitive，例如：
 
-- `data-grid`
 - `form`
 - `detail`
 - `chart`

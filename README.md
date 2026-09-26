@@ -68,15 +68,16 @@ _meta.ui.resourceUri
 
 ### 1. MCP Server
 
-`server.js` 提供五個 Tool：
+`server.js` 提供六個 Tool：
 
 - `get_demo_status`
 - `run_round_trip`
 - `get_production_candidates`
 - `get_customer_sales_ranking`
+- `get_data_grid_demo`
 - `preview_production_orders`
 
-其中包含兩個不同的 UI use case：「訂購轉生產工單」與「客戶銷售排行」。
+其中包含兩個 ERP UI use case，以及一個獨立的 `data-grid` Primitive Lab。
 
 ### 2. Model / Domain Data
 
@@ -94,7 +95,7 @@ _meta.ui.resourceUri
 
 ### 3. Presentation / ViewModel
 
-`server/presentation/` 只描述「資料要怎麼呈現」；目前包含 production 與 sales 兩組 ViewModel：
+`server/presentation/` 只描述「資料要怎麼呈現」；目前包含 production、sales 與 grid 三組 ViewModel：
 
 ```js
 {
@@ -112,7 +113,7 @@ _meta.ui.resourceUri
 Server 註冊：
 
 ```text
-ui://widget/erp-production-demo-v4.html
+ui://widget/erp-production-demo-v5.html
 ```
 
 Widget build 後會以 HTML resource 提供給支援 MCP Apps 的 Host。
@@ -124,8 +125,11 @@ Widget build 後會以 HTML resource 提供給支援 MCP Apps 的 Host。
 目前有：
 
 - `collection-workspace`：inline 摘要、搜尋、多選、批次 action、fullscreen 工作台
+- `data-grid`：欄位 schema、搜尋、篩選、排序、分頁、checkbox、多選 action、badge / number / currency / date formatting
 - `ranked-list`：排行、摘要指標、占比、inline / fullscreen
 - `tree-detail`：樹狀工單 / BOM / 用料 detail
+
+`data-grid` 刻意用獨立 Primitive Lab 驗證，不新增新的 ERP 業務頁面。進階篩選採 progressive disclosure，batch toolbar 只有在選取資料後才出現。
 
 第二個 use case「客戶銷售排行」已經用 `ranked-list` 完成，而且沒有建立 `CustomerSalesRankingPage.jsx`。金額格式也由 domain data 的幣別資訊轉成 presentation schema，例如 NTD 會顯示為 NT$；Renderer 本身不寫死幣別。這就是資料 / Presentation / Renderer 分離真正要解決的問題。
 
@@ -194,9 +198,12 @@ Presentation → tree-detail schema
 ├── server.js                  # MCP Controller / Tools / UI Resource
 ├── mock-erp.js                # 完全假的 ERP 原始資料
 ├── server/
+│   ├── demo/
+│   │   └── grid-fixture.js    # Data Grid Primitive 的 Mock Data
 │   ├── model/
 │   │   └── demo-erp.js        # Canonical Domain Data
 │   └── presentation/
+│       ├── grid.js            # Data Grid ViewModel Schema
 │       ├── production.js      # 生產流程 ViewModel
 │       ├── sales.js           # 銷售排行 ViewModel
 │       └── ui.js              # 共用 ViewModel helper
@@ -208,6 +215,7 @@ Presentation → tree-detail schema
 │   │   ├── AppRenderer.jsx
 │   │   ├── BrandLockup.jsx
 │   │   ├── CollectionWorkspace.jsx
+│   │   ├── DataGrid.jsx
 │   │   ├── RankedList.jsx
 │   │   ├── TreeDetail.jsx
 │   │   └── value.js
@@ -313,7 +321,7 @@ return {
 registerAppResource(
   server,
   "erp-production-demo-widget",
-  "ui://widget/erp-production-demo-v4.html",
+  "ui://widget/erp-production-demo-v5.html",
   ...
 );
 ```
@@ -323,7 +331,7 @@ registerAppResource(
 ```js
 _meta: {
   ui: {
-    resourceUri: "ui://widget/erp-production-demo-v4.html"
+    resourceUri: "ui://widget/erp-production-demo-v5.html"
   }
 }
 ```

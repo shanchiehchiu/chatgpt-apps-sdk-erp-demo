@@ -15,6 +15,8 @@ import {
   listProductionCandidates,
   previewProductionOrders,
 } from "./server/model/demo-erp.js";
+import { getDataGridDemoData } from "./server/demo/grid-fixture.js";
+import { dataGridDemoPresentation } from "./server/presentation/grid.js";
 import {
   productionCandidatesPresentation,
   productionPreviewPresentation,
@@ -24,7 +26,7 @@ import { makeUiView } from "./server/presentation/ui.js";
 
 const APP_DIR = dirname(fileURLToPath(import.meta.url));
 const widgetHtml = readFileSync(join(APP_DIR, "dist/index.html"), "utf8");
-const WIDGET_URI = "ui://widget/erp-production-demo-v4.html";
+const WIDGET_URI = "ui://widget/erp-production-demo-v5.html";
 
 let interactionCount = 0;
 let lastInteractionAt = null;
@@ -65,7 +67,7 @@ function uiToolMeta(visibility = ["model", "app"]) {
 function createAppServer() {
   const server = new McpServer({
     name: "chatgpt-apps-sdk-erp-demo",
-    version: "0.3.1",
+    version: "0.4.0",
   });
 
   registerAppResource(
@@ -213,6 +215,46 @@ function createAppServer() {
     async (args) => {
       const data = await getCustomerSalesRanking(args);
       const presentation = customerSalesRankingPresentation(data);
+
+      return {
+        content: [],
+        structuredContent: {
+          view: "erp_ui",
+          domain: data.domain,
+          count: data.total,
+        },
+        _meta: {
+          erpUi: makeUiView(presentation, data),
+        },
+      };
+    },
+  );
+
+  registerAppTool(
+    server,
+    "get_data_grid_demo",
+    {
+      title: "開啟 Data Grid Primitive",
+      description:
+        "載入一組 Mock Data，驗證通用 data-grid renderer：欄位 schema、搜尋、篩選、排序、分頁、多選、批次 action 與格式化。",
+      inputSchema: z.object({
+        ids: z.array(z.number().int()).optional(),
+      }),
+      outputSchema: z.object({
+        view: z.literal("erp_ui"),
+        domain: z.literal("data_grid_demo"),
+        count: z.number(),
+      }),
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false,
+      },
+      _meta: uiToolMeta(),
+    },
+    async (args) => {
+      const data = getDataGridDemoData(args);
+      const presentation = dataGridDemoPresentation(data);
 
       return {
         content: [],

@@ -3,11 +3,11 @@
 @source "../node_modules/@openai/apps-sdk-ui";
 
 :root {
-  --erp-accent: #2563eb;
-  --erp-accent-hover: #1d4ed8;
+  --erp-accent: #920404;
+  --erp-accent-hover: #741010;
   --erp-accent-soft: color-mix(in srgb, var(--erp-accent) 8%, transparent);
   --erp-accent-ring: color-mix(in srgb, var(--erp-accent) 28%, transparent);
-  --erp-warm: #eff6ff;
+  --erp-warm: #ffeec4;
   --erp-warm-soft: color-mix(in srgb, var(--erp-warm) 48%, transparent);
   --erp-ink: #2c2c2c;
 }
@@ -62,6 +62,75 @@ body {
   background: var(--erp-accent);
 }
 
+.erp-grid-control {
+  height: 34px;
+  border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+  border-radius: 9px;
+  background: transparent;
+  padding: 0 10px;
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+
+.erp-grid-control:focus {
+  border-color: var(--erp-accent);
+  box-shadow: 0 0 0 2px var(--erp-accent-soft);
+}
+
+.erp-grid-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.erp-grid-table th,
+.erp-grid-table td {
+  border-bottom: 1px solid color-mix(in srgb, currentColor 9%, transparent);
+  padding: 9px 12px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.erp-grid-table th {
+  font-weight: 600;
+  color: var(--color-text-secondary, currentColor);
+}
+
+.erp-grid-table tbody tr:hover {
+  background: color-mix(in srgb, currentColor 3%, transparent);
+}
+
+.erp-grid-selected-row {
+  background: var(--erp-accent-soft);
+}
+
+.erp-grid-sort-button {
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  justify-content: inherit;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  cursor: pointer;
+}
+
+.erp-grid-checkbox-cell {
+  width: 44px;
+  min-width: 44px;
+  padding: 0 !important;
+  text-align: center;
+}
+
+.erp-checkbox-hit {
+  display: inline-flex;
+  width: 44px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
 .erp-brand-mark {
   display: inline-flex;
   width: 34px;
@@ -84,10 +153,10 @@ input[type="checkbox"] {
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --erp-accent: #60a5fa;
-    --erp-accent-hover: #93c5fd;
+    --erp-accent: #b94545;
+    --erp-accent-hover: #cf5d5d;
     --erp-accent-soft: color-mix(in srgb, var(--erp-accent) 13%, transparent);
     --erp-accent-ring: color-mix(in srgb, var(--erp-accent) 38%, transparent);
-    --erp-warm-soft: color-mix(in srgb, #eff6ff 10%, transparent);
+    --erp-warm-soft: color-mix(in srgb, #ffeec4 10%, transparent);
   }
 }

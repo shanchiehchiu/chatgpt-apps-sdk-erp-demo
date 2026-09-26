@@ -55,6 +55,20 @@ export function formatValue(value, descriptor = {}) {
     }).format(Number(value));
   }
 
+  if (descriptor.format === "date") {
+    const text = String(value);
+    const parts = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+    if (parts) {
+      return `${parts[1]}/${parts[2]}/${parts[3]}`;
+    }
+
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      return new Intl.DateTimeFormat(locale).format(date);
+    }
+  }
+
   return String(value);
 }
 

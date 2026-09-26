@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import http from "node:http";
 
 const port = 18788;
-const widgetUri = "ui://widget/erp-production-demo-v4.html";
+const widgetUri = "ui://widget/erp-production-demo-v5.html";
 
 const child = spawn(process.execPath, ["server.js"], {
   cwd: process.cwd(),
@@ -119,7 +119,7 @@ try {
     {
       protocolVersion: "2025-06-18",
       capabilities: {},
-      clientInfo: { name: "erp-demo-smoke-test", version: "0.3.1" },
+      clientInfo: { name: "erp-demo-smoke-test", version: "0.4.0" },
     },
     1,
   );
@@ -246,6 +246,41 @@ try {
     throw new Error("Return count label mismatch");
   }
 
+  const gridResult = await rpc(
+    "tools/call",
+    {
+      name: "get_data_grid_demo",
+      arguments: {},
+    },
+    8,
+  );
+
+  if (gridResult.structuredContent?.domain !== "data_grid_demo") {
+    throw new Error("Data Grid demo domain marker missing");
+  }
+
+  const dataGrid = assertUiView(gridResult, "workspace", "data-grid");
+
+  if (!Array.isArray(dataGrid.data.records) || dataGrid.data.records.length < 20) {
+    throw new Error("Data Grid fixture records missing");
+  }
+
+  if ((dataGrid.presentation.grid?.columns ?? []).length < 6) {
+    throw new Error("Data Grid columns schema missing");
+  }
+
+  if ((dataGrid.presentation.filters ?? []).length < 3) {
+    throw new Error("Data Grid filter schema missing");
+  }
+
+  if (dataGrid.presentation.selection?.mode !== "multiple") {
+    throw new Error("Data Grid multi-select schema missing");
+  }
+
+  if (dataGrid.presentation.pagination?.mode !== "client") {
+    throw new Error("Data Grid pagination schema missing");
+  }
+
   const toolNames = new Set(tools.tools.map((tool) => tool.name));
 
   for (const expected of [
@@ -253,6 +288,7 @@ try {
     "run_round_trip",
     "get_production_candidates",
     "get_customer_sales_ranking",
+    "get_data_grid_demo",
     "preview_production_orders",
   ]) {
     if (!toolNames.has(expected)) {
@@ -261,13 +297,14 @@ try {
   }
 
   const resource = resources.resources.find((item) => item.uri === widgetUri);
-  if (!resource) throw new Error("v4 widget resource missing");
+  if (!resource) throw new Error("v5 widget resource missing");
 
   const html = widget.contents?.[0]?.text ?? "";
 
   for (const marker of [
     "ERP UI Runtime",
     "collection-workspace",
+    "data-grid",
     "ranked-list",
     "tree-detail",
     "ui/request-display-mode",
@@ -296,6 +333,8 @@ try {
   console.log(`Preview work orders: ${detail.data.total}`);
   console.log(`Ranking renderer: ${ranking.presentation.renderer}`);
   console.log(`Mock ranked customers: ${ranking.data.total}`);
+  console.log(`Grid renderer: ${dataGrid.presentation.renderer}`);
+  console.log(`Grid records: ${dataGrid.data.total}`);
 } finally {
   child.kill("SIGTERM");
   await sleep(100);
