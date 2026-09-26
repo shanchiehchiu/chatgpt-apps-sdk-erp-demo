@@ -115,7 +115,7 @@ _meta.ui.resourceUri
 Server 註冊：
 
 ```text
-ui://widget/erp-production-demo-v6.html
+ui://widget/erp-production-demo-v7.html
 ```
 
 Widget build 後會以 HTML resource 提供給支援 MCP Apps 的 Host。
@@ -128,11 +128,11 @@ Widget build 後會以 HTML resource 提供給支援 MCP Apps 的 Host。
 
 - `collection-workspace`：inline 摘要、搜尋、多選、批次 action、fullscreen 工作台
 - `data-grid`：欄位 schema、搜尋、篩選、排序、分頁、checkbox、多選 action、badge / number / currency / date formatting
-- `form`：section / field schema、預設值、readonly / disabled、條件顯示、條件必填、前端驗證、MCP submit、後端欄位錯誤回填
+- `form`：section / field schema、預設值、readonly / disabled、條件顯示、條件必填、前端驗證、MCP submit、後端欄位錯誤回填、儲存狀態與 idempotency
 - `ranked-list`：排行、摘要指標、占比、inline / fullscreen
 - `tree-detail`：樹狀工單 / BOM / 用料 detail
 
-`data-grid` 與 `form` 都刻意用獨立 Primitive Lab 驗證，不新增新的 ERP 業務頁面。表單保持 label 永久可見、優先使用預設值與既有資料，錯誤直接顯示在欄位旁。
+`data-grid` 與 `form` 都刻意用獨立 Primitive Lab 驗證，不新增新的 ERP 業務頁面。表單保持 label 永久可見、優先使用預設值與既有資料，錯誤直接顯示在欄位旁；submit 會帶 submission id 做 idempotency，成功後呈現「已儲存」與時間，避免重複送出造成重複寫入。
 
 第二個 use case「客戶銷售排行」已經用 `ranked-list` 完成，而且沒有建立 `CustomerSalesRankingPage.jsx`。金額格式也由 domain data 的幣別資訊轉成 presentation schema，例如 NTD 會顯示為 NT$；Renderer 本身不寫死幣別。這就是資料 / Presentation / Renderer 分離真正要解決的問題。
 
@@ -327,7 +327,7 @@ return {
 registerAppResource(
   server,
   "erp-production-demo-widget",
-  "ui://widget/erp-production-demo-v6.html",
+  "ui://widget/erp-production-demo-v7.html",
   ...
 );
 ```
@@ -337,7 +337,7 @@ registerAppResource(
 ```js
 _meta: {
   ui: {
-    resourceUri: "ui://widget/erp-production-demo-v6.html"
+    resourceUri: "ui://widget/erp-production-demo-v7.html"
   }
 }
 ```

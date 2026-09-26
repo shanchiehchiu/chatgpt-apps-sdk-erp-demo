@@ -114,6 +114,10 @@ export function resolveArgs(template, context = {}) {
     return context.form ?? {};
   }
 
+  if (template === "$submissionId") {
+    return context.submissionId ?? null;
+  }
+
   return template;
 }
 

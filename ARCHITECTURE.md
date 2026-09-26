@@ -174,6 +174,8 @@ src/runtime/
 - 前端驗證與欄位錯誤
 - dirty state / reset
 - MCP submit action
+- submission id / idempotency
+- 成功 / 失敗儲存回饋
 - 後端驗證錯誤回填
 - inline / fullscreen
 

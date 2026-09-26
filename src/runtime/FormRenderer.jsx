@@ -1,7 +1,7 @@
 import { Badge } from "@openai/apps-sdk-ui/components/Badge";
 import { Button } from "@openai/apps-sdk-ui/components/Button";
 import { ChevronRightMd } from "@openai/apps-sdk-ui/components/Icon";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BrandLockup } from "./BrandLockup.jsx";
 import {
@@ -387,10 +387,27 @@ function FormField({
   );
 }
 
+function formatSubmittedAt(value) {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("zh-TW", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
 function ResultBanner({ result }) {
-  if (!result?.message) return null;
+  if (!result?.message && !result?.title) return null;
 
   const success = result.status === "success";
+  const submittedAt = formatSubmittedAt(result.submitted_at);
 
   return (
     <div
@@ -400,10 +417,41 @@ function ResultBanner({ result }) {
       ].join(" ")}
       role={success ? "status" : "alert"}
     >
-      <span className="font-semibold">{success ? "✓" : "!"}</span>
-      <span>{result.message}</span>
+      <div
+        className={[
+          "erp-form-result-icon",
+          success
+            ? "erp-form-result-icon-success"
+            : "erp-form-result-icon-error",
+        ].join(" ")}
+        aria-hidden="true"
+      >
+        {success ? "✓" : "!"}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold">
+          {result.title ?? (success ? "已儲存" : "無法儲存")}
+        </div>
+        {result.message ? (
+          <div className="mt-0.5 text-xs text-secondary">{result.message}</div>
+        ) : null}
+        {submittedAt ? (
+          <div className="mt-1 text-[11px] text-secondary">
+            {success ? "最後儲存" : "最後嘗試"} {submittedAt}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
+}
+
+function createSubmissionId() {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `form-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function FullscreenForm({
@@ -428,12 +476,38 @@ function FullscreenForm({
 
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState(result?.errors ?? {});
-  const [dirty, setDirty] = useState(false);
+  const [dirty, setDirty] = useState(result?.status === "error");
+  const [localFeedback, setLocalFeedback] = useState(null);
+  const submissionIdRef = useRef(result?.submission_id ?? null);
+
+  const focusFirstError = (nextErrors) => {
+    const name = Object.keys(nextErrors ?? {})[0];
+    if (!name) return;
+
+    requestAnimationFrame(() => {
+      const field = document.querySelector(
+        `[data-form-field="${name}"] input, [data-form-field="${name}"] select, [data-form-field="${name}"] textarea`,
+      );
+      field?.focus?.();
+      field?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+    });
+  };
 
   useEffect(() => {
     setValues(initialValues);
     setErrors(result?.errors ?? {});
-    setDirty(false);
+    setDirty(result?.status === "error");
+    setLocalFeedback(null);
+
+    if (result?.status === "success") {
+      submissionIdRef.current = null;
+    } else if (result?.submission_id) {
+      submissionIdRef.current = result.submission_id;
+    }
+
+    if (result?.status === "error" && result?.errors) {
+      focusFirstError(result.errors);
+    }
   }, [initialValues, result]);
 
   const updateField = (name, value) => {
@@ -447,20 +521,9 @@ function FullscreenForm({
       delete next[name];
       return next;
     });
+    setLocalFeedback(null);
+    submissionIdRef.current = null;
     setDirty(true);
-  };
-
-  const focusFirstError = (nextErrors) => {
-    const name = Object.keys(nextErrors)[0];
-    if (!name) return;
-
-    requestAnimationFrame(() => {
-      const field = document.querySelector(
-        `[data-form-field="${name}"] input, [data-form-field="${name}"] select, [data-form-field="${name}"] textarea`,
-      );
-      field?.focus?.();
-      field?.scrollIntoView?.({ block: "center", behavior: "smooth" });
-    });
   };
 
   const submit = async (event) => {
@@ -470,22 +533,39 @@ function FullscreenForm({
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) {
+      setLocalFeedback({
+        status: "error",
+        title: "尚有欄位需要修正",
+        message: `有 ${Object.keys(nextErrors).length} 個欄位尚未完成，請修正後再儲存。`,
+        errors: nextErrors,
+      });
       focusFirstError(nextErrors);
       return;
     }
 
     if (!presentation.submit?.tool) return;
 
+    if (!submissionIdRef.current) {
+      submissionIdRef.current = createSubmissionId();
+    }
+
+    setLocalFeedback(null);
+
     await callTool(
       presentation.submit.tool,
-      resolveArgs(presentation.submit.input ?? {}, { form: values }),
+      resolveArgs(presentation.submit.input ?? {}, {
+        form: values,
+        submissionId: submissionIdRef.current,
+      }),
     );
   };
 
   const reset = () => {
     setValues(initialValues);
     setErrors(result?.errors ?? {});
-    setDirty(false);
+    setLocalFeedback(null);
+    submissionIdRef.current = null;
+    setDirty(result?.status === "error");
   };
 
   const composerClearance = Math.max(
@@ -523,16 +603,24 @@ function FullscreenForm({
             </div>
           </div>
 
-          {dirty ? (
+          {activeAction === presentation.submit?.tool ? (
             <Badge color="secondary" variant="soft" size="sm">
-              有未送出變更
+              儲存中…
+            </Badge>
+          ) : dirty ? (
+            <Badge color="secondary" variant="soft" size="sm">
+              尚未儲存
+            </Badge>
+          ) : result?.status === "success" ? (
+            <Badge color="success" variant="soft" size="sm">
+              已儲存
             </Badge>
           ) : null}
         </header>
 
         <form onSubmit={submit} noValidate>
           <div className="px-6 py-4">
-            <ResultBanner result={result} />
+            <ResultBanner result={localFeedback ?? result} />
 
             {(form.sections ?? []).map((section, index) => {
               const sectionFields = (section.fields ?? [])
@@ -602,11 +690,14 @@ function FullscreenForm({
                 size="md"
                 pill={false}
                 className="erp-brand-primary"
+                disabled={!dirty && result?.status === "success"}
                 loading={activeAction === presentation.submit?.tool}
               >
                 {activeAction === presentation.submit?.tool
-                  ? presentation.submit?.loadingLabel ?? "送出中…"
-                  : presentation.submit?.label ?? "送出"}
+                  ? presentation.submit?.loadingLabel ?? "儲存中…"
+                  : !dirty && result?.status === "success"
+                    ? presentation.submit?.successLabel ?? "已儲存"
+                    : presentation.submit?.label ?? "儲存變更"}
               </Button>
             </div>
           </footer>

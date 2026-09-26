@@ -31,10 +31,31 @@ import { makeUiView } from "./server/presentation/ui.js";
 
 const APP_DIR = dirname(fileURLToPath(import.meta.url));
 const widgetHtml = readFileSync(join(APP_DIR, "dist/index.html"), "utf8");
-const WIDGET_URI = "ui://widget/erp-production-demo-v6.html";
+const WIDGET_URI = "ui://widget/erp-production-demo-v7.html";
 
 let interactionCount = 0;
 let lastInteractionAt = null;
+
+const formSubmissionCache = new Map();
+const FORM_SUBMISSION_CACHE_LIMIT = 100;
+
+function resolveFormSubmission(submissionId, createData) {
+  if (!submissionId) return createData();
+
+  if (formSubmissionCache.has(submissionId)) {
+    return formSubmissionCache.get(submissionId);
+  }
+
+  const data = createData();
+  formSubmissionCache.set(submissionId, data);
+
+  if (formSubmissionCache.size > FORM_SUBMISSION_CACHE_LIMIT) {
+    const oldestKey = formSubmissionCache.keys().next().value;
+    formSubmissionCache.delete(oldestKey);
+  }
+
+  return data;
+}
 
 const projectSchema = z.object({
   name: z.string(),
@@ -72,7 +93,7 @@ function uiToolMeta(visibility = ["model", "app"]) {
 function createAppServer() {
   const server = new McpServer({
     name: "chatgpt-apps-sdk-erp-demo",
-    version: "0.5.0",
+    version: "0.5.1",
   });
 
   registerAppResource(
@@ -281,7 +302,7 @@ function createAppServer() {
     {
       title: "開啟 Form Primitive",
       description:
-        "載入不綁定業務頁面的 Mock Form，驗證欄位 schema、預設值、readonly / disabled、條件顯示、條件必填、前端驗證與 MCP submit action。",
+        "載入不綁定業務頁面的 Mock Form。每個使用者要求只需呼叫一次；Tool 成功後 UI 已完成載入，不要在同一回合重複呼叫。用來驗證欄位 schema、預設值、readonly / disabled、條件顯示、條件必填、前端驗證與 MCP submit action。",
       inputSchema: z.object({}),
       outputSchema: z.object({
         view: z.literal("erp_ui"),
@@ -300,7 +321,12 @@ function createAppServer() {
       const presentation = formDemoPresentation();
 
       return {
-        content: [],
+        content: [
+          {
+            type: "text",
+            text: `Form Primitive 已載入，共 ${data.total} 個欄位。UI 已呈現，本回合不需要再次載入。`,
+          },
+        ],
         structuredContent: {
           view: "erp_ui",
           domain: data.domain,
@@ -321,6 +347,7 @@ function createAppServer() {
       description:
         "接收 Form Primitive 值並執行 Mock 後端驗證。Demo 不寫入資料，只回傳驗證結果與欄位錯誤。",
       inputSchema: z.object({
+        submission_id: z.string().min(1).max(120),
         values: z.record(
           z.string(),
           z.union([z.string(), z.number(), z.boolean(), z.null()]),
@@ -338,12 +365,23 @@ function createAppServer() {
       },
       _meta: uiToolMeta(["app"]),
     },
-    async ({ values }) => {
-      const data = submitFormDemo(values);
+    async ({ submission_id, values }) => {
+      const data = resolveFormSubmission(
+        submission_id,
+        () => submitFormDemo(values, submission_id),
+      );
       const presentation = formDemoPresentation();
 
       return {
-        content: [],
+        content: [
+          {
+            type: "text",
+            text:
+              data.result?.status === "success"
+                ? "表單儲存流程已完成。"
+                : "表單仍有欄位需要修正，已回傳欄位錯誤。",
+          },
+        ],
         structuredContent: {
           view: "erp_ui",
           domain: data.domain,

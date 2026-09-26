@@ -77,16 +77,20 @@ export function validateFormDemo(values = {}) {
   return errors;
 }
 
-export function submitFormDemo(values = {}) {
+export function submitFormDemo(values = {}, submissionId = null) {
   const errors = validateFormDemo(values);
+  const submittedAt = new Date().toISOString();
 
   if (Object.keys(errors).length > 0) {
     return getFormDemoData({
       values,
       result: {
         status: "error",
-        message: "後端驗證未通過，請修正欄位後再送出。",
+        title: "無法儲存變更",
+        message: `有 ${Object.keys(errors).length} 個欄位需要修正，請完成後再儲存。`,
         errors,
+        submission_id: submissionId,
+        submitted_at: submittedAt,
       },
     });
   }
@@ -95,9 +99,11 @@ export function submitFormDemo(values = {}) {
     values,
     result: {
       status: "success",
-      message: "Demo 表單已通過後端驗證；沒有寫入任何 ERP 資料。",
+      title: "已儲存變更",
+      message: "Demo 已完成完整送出流程；此環境不會寫入 ERP 資料庫。",
       errors: {},
-      submitted_at: new Date().toISOString(),
+      submission_id: submissionId,
+      submitted_at: submittedAt,
     },
   });
 }

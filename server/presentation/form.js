@@ -184,13 +184,15 @@ export function formDemoPresentation() {
     },
     submit: {
       tool: "submit_form_demo",
-      label: "驗證表單",
-      loadingLabel: "驗證中…",
+      label: "儲存變更",
+      loadingLabel: "儲存中…",
+      successLabel: "已儲存",
       input: {
+        submission_id: "$submissionId",
         values: "$form",
       },
     },
-    resetLabel: "重設",
-    footerText: "Primitive Demo · 前端驗證 + MCP Tool 後端驗證",
+    resetLabel: "還原變更",
+    footerText: "Primitive Demo · 前端驗證 + MCP Tool 後端驗證 + Idempotency",
   };
 }

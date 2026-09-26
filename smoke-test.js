@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import http from "node:http";
 
 const port = 18788;
-const widgetUri = "ui://widget/erp-production-demo-v6.html";
+const widgetUri = "ui://widget/erp-production-demo-v7.html";
 
 const child = spawn(process.execPath, ["server.js"], {
   cwd: process.cwd(),
@@ -119,7 +119,7 @@ try {
     {
       protocolVersion: "2025-06-18",
       capabilities: {},
-      clientInfo: { name: "erp-demo-smoke-test", version: "0.5.0" },
+      clientInfo: { name: "erp-demo-smoke-test", version: "0.5.1" },
     },
     1,
   );
@@ -297,6 +297,10 @@ try {
   const formView = assertUiView(formResult, "workspace", "form");
   const formFields = formView.presentation.form?.fields ?? [];
 
+  if (!(formResult.content?.[0]?.text ?? "").includes("本回合不需要再次載入")) {
+    throw new Error("Form load completion message missing");
+  }
+
   if (formFields.length < 10) {
     throw new Error("Form field schema missing");
   }
@@ -314,6 +318,7 @@ try {
     {
       name: "submit_form_demo",
       arguments: {
+        submission_id: "smoke-invalid-1",
         values: {
           ...formView.data.values,
           delivery_method: "delivery",
@@ -342,6 +347,7 @@ try {
     {
       name: "submit_form_demo",
       arguments: {
+        submission_id: "smoke-success-1",
         values: {
           ...formView.data.values,
           delivery_method: "delivery",
@@ -357,6 +363,35 @@ try {
   const validForm = assertUiView(validFormResult, "workspace", "form");
   if (validForm.data.result?.status !== "success") {
     throw new Error("Form backend validation success state missing");
+  }
+  if (validForm.data.result?.title !== "已儲存變更") {
+    throw new Error("Form success feedback title missing");
+  }
+  if (validForm.data.result?.submission_id !== "smoke-success-1") {
+    throw new Error("Form submission id missing");
+  }
+
+  const replayFormResult = await rpc(
+    "tools/call",
+    {
+      name: "submit_form_demo",
+      arguments: {
+        submission_id: "smoke-success-1",
+        values: {
+          ...formView.data.values,
+          customer_name: "",
+        },
+      },
+    },
+    12,
+  );
+
+  const replayForm = assertUiView(replayFormResult, "workspace", "form");
+  if (replayForm.data.result?.status !== "success") {
+    throw new Error("Form idempotent replay did not reuse first result");
+  }
+  if (replayForm.data.values?.customer_name === "") {
+    throw new Error("Form idempotent replay executed duplicate payload");
   }
 
   const toolNames = new Set(tools.tools.map((tool) => tool.name));
@@ -377,7 +412,7 @@ try {
   }
 
   const resource = resources.resources.find((item) => item.uri === widgetUri);
-  if (!resource) throw new Error("v6 widget resource missing");
+  if (!resource) throw new Error("v7 widget resource missing");
 
   const html = widget.contents?.[0]?.text ?? "";
 
