@@ -144,3 +144,23 @@ export async function getCustomerSalesRanking(input = {}) {
     records,
   };
 }
+
+export async function searchCustomers(query = "") {
+  const q = query.trim().toLowerCase();
+
+  const matches = customerSales.filter((row) => {
+    if (!q) return true;
+    return (
+      row.customer_name.toLowerCase().includes(q) ||
+      row.customer_no.toLowerCase().includes(q)
+    );
+  });
+
+  return matches
+    .map(({ customer_id, customer_no, customer_name }) => ({
+      customer_id,
+      customer_no,
+      customer_name,
+    }))
+    .sort((a, b) => a.customer_name.localeCompare(b.customer_name));
+}

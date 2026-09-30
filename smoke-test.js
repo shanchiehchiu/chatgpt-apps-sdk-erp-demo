@@ -246,6 +246,62 @@ try {
     throw new Error("Return count label mismatch");
   }
 
+  const mentionsAllResult = await rpc(
+    "tools/call",
+    {
+      name: "search_customer_mentions",
+      arguments: { query: "" },
+    },
+    13,
+  );
+
+  if (mentionsAllResult.structuredContent?.items?.length !== 6) {
+    throw new Error(
+      "Mention search with empty query should return all mock customers",
+    );
+  }
+
+  const mentionsFilteredResult = await rpc(
+    "tools/call",
+    {
+      name: "search_customer_mentions",
+      arguments: { query: "範例客戶 A" },
+    },
+    14,
+  );
+
+  const mentionItems = mentionsFilteredResult.structuredContent?.items ?? [];
+
+  if (mentionItems.length !== 1) {
+    throw new Error("Mention search should match exactly one customer");
+  }
+
+  if (mentionItems[0].type !== "resource_link") {
+    throw new Error("Mention item should be a resource_link");
+  }
+
+  if (mentionItems[0].uri !== "erp://customer/201") {
+    throw new Error("Mention item uri mismatch");
+  }
+
+  if (mentionItems[0].name !== "範例客戶 A") {
+    throw new Error("Mention item name mismatch");
+  }
+
+  const mentionTool = tools.tools.find(
+    (tool) => tool.name === "search_customer_mentions",
+  );
+
+  if (!mentionTool?._meta?.["openai/extensions"]?.["mentions/search"]) {
+    throw new Error(
+      "Mention search tool missing mentions/search extension meta",
+    );
+  }
+
+  if (!(mentionTool?._meta?.ui?.visibility ?? []).includes("app")) {
+    throw new Error("Mention search tool must be visible to app");
+  }
+
   const gridResult = await rpc(
     "tools/call",
     {
@@ -401,6 +457,7 @@ try {
     "run_round_trip",
     "get_production_candidates",
     "get_customer_sales_ranking",
+    "search_customer_mentions",
     "get_data_grid_demo",
     "get_form_demo",
     "submit_form_demo",

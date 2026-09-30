@@ -14,6 +14,7 @@ import {
   getCustomerSalesRanking,
   listProductionCandidates,
   previewProductionOrders,
+  searchCustomers,
 } from "./server/model/demo-erp.js";
 import { getDataGridDemoData } from "./server/demo/grid-fixture.js";
 import {
@@ -251,6 +252,49 @@ function createAppServer() {
         },
         _meta: {
           erpUi: makeUiView(presentation, data),
+        },
+      };
+    },
+  );
+
+  registerAppTool(
+    server,
+    "search_customer_mentions",
+    {
+      title: "搜尋客戶提及",
+      description:
+        "供 ChatGPT composer 的 @ 提及 typeahead 搜尋使用，回傳可提及的客戶清單。",
+      inputSchema: z.object({ query: z.string() }),
+      outputSchema: z.object({
+        items: z.array(
+          z.object({
+            type: z.literal("resource_link"),
+            uri: z.string(),
+            name: z.string(),
+          }),
+        ),
+      }),
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false,
+      },
+      _meta: {
+        "openai/extensions": { "mentions/search": {} },
+        ui: { visibility: ["app"] },
+      },
+    },
+    async ({ query }) => {
+      const customers = await searchCustomers(query);
+
+      return {
+        content: [],
+        structuredContent: {
+          items: customers.map((customer) => ({
+            type: "resource_link",
+            uri: `erp://customer/${customer.customer_id}`,
+            name: customer.customer_name,
+          })),
         },
       };
     },
