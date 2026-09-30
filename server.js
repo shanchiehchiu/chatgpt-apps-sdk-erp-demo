@@ -221,7 +221,7 @@ function createAppServer() {
     {
       title: "查詢客戶銷售排行",
       description:
-        "從 Mock ERP 取得客戶淨銷售排行，並用通用 ranked-list renderer 呈現。若未提供日期，預設使用今年至今天。",
+        "從 Mock ERP 取得客戶淨銷售排行，並用通用 ranked-list renderer 呈現。若未提供日期，預設使用今年至今天。若使用者以 @ 提及客戶（resource_link 的 uri 為 erp://customer/{customer_id}），請帶入該 customer_id，只回傳該客戶在全體排行中的名次與占比。",
       inputSchema: z.object({
         start_date: z.string().optional(),
         end_date: z.string().optional(),
