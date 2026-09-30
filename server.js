@@ -279,6 +279,8 @@ function createAppServer() {
         openWorldHint: false,
         destructiveHint: false,
       },
+      // 刻意不用 uiToolMeta()：這個 tool 只給 composer typeahead 呼叫，不渲染
+      // widget，不可以帶 resourceUri（uiToolMeta() 預設會加上）。
       _meta: {
         "openai/extensions": { "mentions/search": {} },
         ui: { visibility: ["app"] },
