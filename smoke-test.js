@@ -302,6 +302,61 @@ try {
     throw new Error("Mention search tool must be visible to app");
   }
 
+  const customerFilteredRankingResult = await rpc(
+    "tools/call",
+    {
+      name: "get_customer_sales_ranking",
+      arguments: {
+        start_date: "2026-01-01",
+        end_date: "2026-09-26",
+        customer_id: 201,
+      },
+    },
+    15,
+  );
+
+  const customerFiltered = assertUiView(
+    customerFilteredRankingResult,
+    "workspace",
+    "ranked-list",
+  );
+
+  if (customerFilteredRankingResult.structuredContent?.count !== 1) {
+    throw new Error(
+      "Customer-filtered ranking should return exactly one record",
+    );
+  }
+
+  if (customerFiltered.data.records.length !== 1) {
+    throw new Error("Customer-filtered ranking canonical records mismatch");
+  }
+
+  const filteredRecord = customerFiltered.data.records[0];
+
+  if (filteredRecord.customer_id !== 201) {
+    throw new Error("Customer-filtered ranking returned wrong customer");
+  }
+
+  const matchingUnfiltered = ranking.data.records.find(
+    (record) => record.customer_id === 201,
+  );
+
+  if (!matchingUnfiltered) {
+    throw new Error("Customer 201 missing from unfiltered ranking baseline");
+  }
+
+  if (filteredRecord.rank !== matchingUnfiltered.rank) {
+    throw new Error(
+      "Customer-filtered rank should match unfiltered ranking baseline",
+    );
+  }
+
+  if (filteredRecord.share_percent !== matchingUnfiltered.share_percent) {
+    throw new Error(
+      "Customer-filtered share_percent should match unfiltered ranking baseline",
+    );
+  }
+
   const gridResult = await rpc(
     "tools/call",
     {

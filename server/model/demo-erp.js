@@ -103,13 +103,18 @@ export async function getCustomerSalesRanking(input = {}) {
     0,
   );
 
-  const records = rows.slice(0, limit).map((row, index) => ({
+  const rankedRows = rows.map((row, index) => ({
     ...row,
     rank: index + 1,
     share_percent: netTotal
       ? Number(((row.net_sales_amount / netTotal) * 100).toFixed(2))
       : 0,
   }));
+
+  const records =
+    input.customer_id != null
+      ? rankedRows.filter((row) => row.customer_id === input.customer_id)
+      : rankedRows.slice(0, limit);
 
   return {
     domain: "customer_sales_ranking",

@@ -226,6 +226,7 @@ function createAppServer() {
         start_date: z.string().optional(),
         end_date: z.string().optional(),
         limit: z.number().int().min(1).max(50).optional(),
+        customer_id: z.number().int().optional(),
       }),
       outputSchema: z.object({
         view: z.literal("erp_ui"),
